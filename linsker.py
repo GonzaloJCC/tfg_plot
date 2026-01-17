@@ -5,18 +5,19 @@ import os
 import sys
 import re
 
-# --- CONFIGURACIÓN DE CARPETAS ---
+# Folders
 TXT_FOLDER = "Resultados_TXT"
 PNG_FOLDER = "Resultados_PNG"
 
-# --- PASO 1: EXTRACTOR DE PARÁMETROS DEL C++ ---
+# --- 1. EXTRACT PARAMETERS FROM C++ ---
 def extract_cpp_params():
-    print("--- Analizando código C++ para buscar parámetros ---")
+    print("--- Analyzing C++ code to find parameters ---")
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Adjust path if needed. Assuming: Gráficas/linsker.py -> Neun/examples/linskerSynapsis.cpp
     cpp_file = os.path.abspath(os.path.join(script_dir, '../Neun/examples/linskerSynapsis.cpp'))
     
     if not os.path.exists(cpp_file):
-        print(f"Error: No encuentro el código fuente en {cpp_file}")
+        print(f"Error: Not found {cpp_file}")
         sys.exit(1)
 
     params_found = {}
@@ -24,7 +25,7 @@ def extract_cpp_params():
     with open(cpp_file, 'r') as f:
         content = f.read()
 
-    # Buscamos patrones tipo: syn_args.params[Synapsis::xo] = -65;
+    # Search for patterns like: syn_args.params[Synapsis::xo] = -65;
     pattern = r"syn_args\.params\[Synapsis::(\w+)\]\s*=\s*([^;]+);"
     matches = re.findall(pattern, content)
     
@@ -33,75 +34,78 @@ def extract_cpp_params():
 
     return params_found
 
-# --- PASO 2: CONSTRUIR NOMBRE DINÁMICO ---
+# --- 2. BUILD DYNAMIC NAME ---
 params = extract_cpp_params()
 
-# Elegimos qué parámetros forman parte del nombre
+# Choose which parameters form the name
 keys_to_use = ['xo', 'yo', 'eta', 'k1', 'w_max']
 filename_parts = []
-title_parts = [] # Para el título de la gráfica
+title_parts = []
 
 for k in keys_to_use:
     if k in params:
         val = params[k]
-        filename_parts.append(f"{k}{val}")     # Ejemplo: xo-65
-        title_parts.append(f"{k}={val}")       # Ejemplo: xo=-65
+        filename_parts.append(f"{k}{val}")     # Example: xo-65
+        title_parts.append(f"{k}={val}")       # Example: xo=-65
 
-# Si no encuentra params, usa "default"
+# If no params found, use "default"
 suffix = "_".join(filename_parts) if filename_parts else "default"
 base_filename = f"linsker_{suffix}" 
 
-print(f"ID de Simulación: {base_filename}")
+print(f"ID of Simulation: {base_filename}")
 
-# --- PASO 3: EJECUCIÓN ---
+# --- 3. RUN SIMULATION ---
 def run_simulation(output_txt_path):
-    print("--- Compilando y Ejecutando ---")
+    print("--- Compiling and Running ---")
     script_dir = os.path.dirname(os.path.abspath(__file__))
     build_dir = os.path.abspath(os.path.join(script_dir, '../Neun/build'))
     
-    # IMPORTANTE: Usamos la ruta absoluta para el redireccionamiento >
-    # Ponemos comillas por si hay espacios en la ruta
+    # Execute c++ from here using output redirection
     cmd = f'make && cd examples && ./linskerSynapsis > "{output_txt_path}"'
     
     try:
         subprocess.run(cmd, cwd=build_dir, shell=True, check=True)
-        print(f"Datos guardados en: {output_txt_path}")
+        print(f"Data saved in: {output_txt_path}")
     except subprocess.CalledProcessError as e:
-        print(f"Error compilando/ejecutando: {e}")
+        print(f"Error compiling/running: {e}")
         sys.exit(1)
 
-# Preparamos la ruta del TXT
+# Path to save the txt
 script_dir = os.path.dirname(os.path.abspath(__file__))
 txt_dir_abs = os.path.join(script_dir, TXT_FOLDER)
-os.makedirs(txt_dir_abs, exist_ok=True) # Crea la carpeta 'txt' si no existe
+os.makedirs(txt_dir_abs, exist_ok=True)
 
 full_txt_path = os.path.join(txt_dir_abs, f"{base_filename}.txt")
 
-# Ejecutamos pasando la ruta donde queremos el txt
+# Run simulation
 run_simulation(full_txt_path)
 
-# --- PASO 4: GRAFICADO ---
-columnas = ['Time', 'V1pre', 'V2pre', 'Vpost', 'i1', 'i2', 'w1', 'w2', 'SUM(W)']
-
+# --- 4. PLOT ---
 if os.path.exists(full_txt_path):
-    print("Generando gráfica...")
-    # Leemos el archivo específico que acabamos de crear
-    df = pd.read_csv(full_txt_path, sep='\s+', names=columnas, header=0, engine='c')
+    print("Generating plot...")
+    
+    # [CORRECCIÓN 1] Definimos la lista de columnas que faltaba
+    columns = ['Time', 'V1pre', 'V2pre', 'Vpost', 'i1', 'i2', 'w1', 'w2', 'SUM(W)']
+
+    # [CORRECCIÓN 2] Usamos r'\s+' para evitar el warning y pasamos names=columns
+    df = pd.read_csv(full_txt_path, sep=r'\s+', names=columns, header=0, engine='c')
+    
     df_plot = df.iloc[::50, :].copy()
 
     fig, (ax_i, ax_w) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
 
-    # Título bonito
+    # Title of the plot
     plot_title_str = ", ".join(title_parts)
-    fig.suptitle(f"Simulación Linsker\n[{plot_title_str}]", fontsize=11, color='navy')
+    fig.suptitle(f"Linsker Simulation\n[{plot_title_str}]", fontsize=11, color='navy')
 
-    # Gráficas
+    # Plots - Panel 1
     ax_i.plot(df_plot['Time'], df_plot['i1'], label='i1', color='red')
     ax_i.plot(df_plot['Time'], df_plot['i2'], label='i2', color='purple')
     ax_i.set_ylabel('Corriente (i)')
     ax_i.legend(loc='upper right')
     ax_i.grid(True, alpha=0.3)
 
+    # Plots - Panel 2
     ax_w.plot(df_plot['Time'], df_plot['w1'], label='w1', color='brown')
     ax_w.plot(df_plot['Time'], df_plot['w2'], label='w2', color='darkgreen')
     ax_w.set_ylabel('Pesos (w)')
@@ -111,13 +115,13 @@ if os.path.exists(full_txt_path):
 
     plt.tight_layout()
 
-    # --- GUARDAR PNG ---
+    # Save plot
     png_dir_abs = os.path.join(script_dir, PNG_FOLDER)
-    os.makedirs(png_dir_abs, exist_ok=True) # Crea la carpeta 'Resultados_PNG'
+    os.makedirs(png_dir_abs, exist_ok=True)
     
     png_path = os.path.join(png_dir_abs, f"{base_filename}.png")
     
     plt.savefig(png_path)
-    print(f"✅ Todo listo:\n -> Datos: {full_txt_path}\n -> Gráfica: {png_path}")
+    print(f"\n -> Data: {full_txt_path}\n -> Plot: {png_path}")
     
     plt.show()
