@@ -3,92 +3,121 @@ import matplotlib.pyplot as plt
 import subprocess
 import os
 import sys
+import re
 
-# --- PASO 0: Ejecutar la simulación C++ para generar los datos ---
-def run_simulation():
-    print("--- Iniciando generación de datos ---")
-    
-    # 1. Identificar dónde estamos. 
-    # Usamos __file__ para asegurar que tomamos la ruta donde está este script (Gráficas)
+# --- CONFIGURACIÓN DE CARPETAS ---
+TXT_FOLDER = "Resultados_TXT"
+PNG_FOLDER = "Resultados_PNG"
+
+# --- PASO 1: EXTRACTOR DE PARÁMETROS DEL C++ ---
+def extract_cpp_params():
+    print("--- Analizando código C++ para buscar parámetros ---")
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    cpp_file = os.path.abspath(os.path.join(script_dir, '../Neun/examples/linskerSynapsis.cpp'))
     
-    # 2. Calcular la ruta al directorio Neun/build
-    # Desde 'Gráficas', subimos uno (..) y bajamos a 'Neun/build'
+    if not os.path.exists(cpp_file):
+        print(f"Error: No encuentro el código fuente en {cpp_file}")
+        sys.exit(1)
+
+    params_found = {}
+
+    with open(cpp_file, 'r') as f:
+        content = f.read()
+
+    # Buscamos patrones tipo: syn_args.params[Synapsis::xo] = -65;
+    pattern = r"syn_args\.params\[Synapsis::(\w+)\]\s*=\s*([^;]+);"
+    matches = re.findall(pattern, content)
+    
+    for name, value in matches:
+        params_found[name] = value.strip()
+
+    return params_found
+
+# --- PASO 2: CONSTRUIR NOMBRE DINÁMICO ---
+params = extract_cpp_params()
+
+# Elegimos qué parámetros forman parte del nombre
+keys_to_use = ['xo', 'yo', 'eta', 'k1', 'w_max']
+filename_parts = []
+title_parts = [] # Para el título de la gráfica
+
+for k in keys_to_use:
+    if k in params:
+        val = params[k]
+        filename_parts.append(f"{k}{val}")     # Ejemplo: xo-65
+        title_parts.append(f"{k}={val}")       # Ejemplo: xo=-65
+
+# Si no encuentra params, usa "default"
+suffix = "_".join(filename_parts) if filename_parts else "default"
+base_filename = f"linsker_{suffix}" 
+
+print(f"ID de Simulación: {base_filename}")
+
+# --- PASO 3: EJECUCIÓN ---
+def run_simulation(output_txt_path):
+    print("--- Compilando y Ejecutando ---")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     build_dir = os.path.abspath(os.path.join(script_dir, '../Neun/build'))
     
-    if not os.path.exists(build_dir):
-        print(f"Error: No se encuentra el directorio de build en: {build_dir}")
-        return
-
-    # 3. Definir el comando.
-    # Usamos '&&' en lugar de ';' para que si falla el 'cd', no intente ejecutar el programa.
-    # La ruta de salida ../../../Gráficas/linsker.txt es relativa a 'Neun/build/examples'
-    cmd = "make && cd examples && ./linskerSynapsis > ../../../Gráficas/linsker.txt"
+    # IMPORTANTE: Usamos la ruta absoluta para el redireccionamiento >
+    # Ponemos comillas por si hay espacios en la ruta
+    cmd = f'make && cd examples && ./linskerSynapsis > "{output_txt_path}"'
     
-    print(f"Directorio de trabajo para el comando: {build_dir}")
-    print(f"Ejecutando: {cmd}")
-
     try:
-        # cwd=build_dir hace que el proceso empiece en Neun/build
-        # shell=True permite usar 'cd' y la redirección '>'
         subprocess.run(cmd, cwd=build_dir, shell=True, check=True)
-        print("Datos generados y guardados en linsker.txt exitosamente.")
+        print(f"Datos guardados en: {output_txt_path}")
     except subprocess.CalledProcessError as e:
-        print(f"Hubo un error al ejecutar la simulación: {e}")
-        # No salimos (sys.exit) por si quieres ver la gráfica de datos viejos,
-        # pero podrías descomentar la siguiente línea si prefieres que pare.
-        # sys.exit(1)
+        print(f"Error compilando/ejecutando: {e}")
+        sys.exit(1)
 
-# Ejecutamos la generación antes de cargar nada
-run_simulation()
+# Preparamos la ruta del TXT
+script_dir = os.path.dirname(os.path.abspath(__file__))
+txt_dir_abs = os.path.join(script_dir, TXT_FOLDER)
+os.makedirs(txt_dir_abs, exist_ok=True) # Crea la carpeta 'txt' si no existe
 
-print("\n--- Procesando gráficas ---")
+full_txt_path = os.path.join(txt_dir_abs, f"{base_filename}.txt")
 
-# --- SCRIPT ORIGINAL DE GRAFICADO ---
+# Ejecutamos pasando la ruta donde queremos el txt
+run_simulation(full_txt_path)
 
-# 1. Configuración de nombres y carga de datos
-# Como el script está en 'Gráficas' y el archivo se generó ahí mismo, el path es directo
-file_path = 'linsker.txt'
+# --- PASO 4: GRAFICADO ---
 columnas = ['Time', 'V1pre', 'V2pre', 'Vpost', 'i1', 'i2', 'w1', 'w2', 'SUM(W)']
 
-if not os.path.exists(file_path):
-    print(f"Error: El archivo {file_path} no existe. Verifica la compilación C++.")
-    sys.exit(1)
+if os.path.exists(full_txt_path):
+    print("Generando gráfica...")
+    # Leemos el archivo específico que acabamos de crear
+    df = pd.read_csv(full_txt_path, sep='\s+', names=columnas, header=0, engine='c')
+    df_plot = df.iloc[::50, :].copy()
 
-print("Cargando linsker.txt... (2M de líneas)")
-# Usamos engine='c' y low_memory=False para máxima velocidad
-df = pd.read_csv(file_path, sep='\s+', names=columnas, header=0, engine='c')
+    fig, (ax_i, ax_w) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
 
-# 2. Decimación (Muestreo)
-# Graficar 2 millones de puntos es innecesario. 
-# Tomamos 1 de cada 50 puntos para que la gráfica sea fluida y nítida.
-df_plot = df.iloc[::50, :].copy()
+    # Título bonito
+    plot_title_str = ", ".join(title_parts)
+    fig.suptitle(f"Simulación Linsker\n[{plot_title_str}]", fontsize=11, color='navy')
 
-# 3. Crear la figura con 2 subplots (Corrientes arriba, Pesos abajo)
-fig, (ax_i, ax_w) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+    # Gráficas
+    ax_i.plot(df_plot['Time'], df_plot['i1'], label='i1', color='red')
+    ax_i.plot(df_plot['Time'], df_plot['i2'], label='i2', color='purple')
+    ax_i.set_ylabel('Corriente (i)')
+    ax_i.legend(loc='upper right')
+    ax_i.grid(True, alpha=0.3)
 
-# --- PANEL 1: Corrientes (i1, i2) ---
-ax_i.plot(df_plot['Time'], df_plot['i1'], label='i1', color='red', lw=2.5)
-ax_i.plot(df_plot['Time'], df_plot['i2'], label='i2', color='purple', lw=2.5)
-ax_i.set_ylabel('Corriente (i)')
-ax_i.set_title('Evolución de Corrientes y Pesos')
-ax_i.legend(loc='upper right')
-ax_i.grid(True, alpha=0.3)
+    ax_w.plot(df_plot['Time'], df_plot['w1'], label='w1', color='brown')
+    ax_w.plot(df_plot['Time'], df_plot['w2'], label='w2', color='darkgreen')
+    ax_w.set_ylabel('Pesos (w)')
+    ax_w.set_xlabel('Tiempo (ms)')
+    ax_w.legend(loc='upper right')
+    ax_w.grid(True, alpha=0.3)
 
-# --- PANEL 2: Pesos (w1, w2) ---
-ax_w.plot(df_plot['Time'], df_plot['w1'], label='w1', color='brown', lw=3.5)
-ax_w.plot(df_plot['Time'], df_plot['w2'], label='w2', color='darkgreen', lw=3.5)
-ax_w.set_ylabel('Pesos (w)')
-ax_w.set_xlabel('Tiempo (s)')
-ax_w.legend(loc='upper right')
-ax_w.grid(True, alpha=0.3)
+    plt.tight_layout()
 
-# 4. Ajustes finales
-plt.tight_layout()
-
-# Opcional: Zoom
-# plt.xlim(0, 500) 
-
-print("Mostrando gráfica...")
-plt.savefig("linsker_plot.png") # Guardo una copia por si acaso
-plt.show()
+    # --- GUARDAR PNG ---
+    png_dir_abs = os.path.join(script_dir, PNG_FOLDER)
+    os.makedirs(png_dir_abs, exist_ok=True) # Crea la carpeta 'Resultados_PNG'
+    
+    png_path = os.path.join(png_dir_abs, f"{base_filename}.png")
+    
+    plt.savefig(png_path)
+    print(f"✅ Todo listo:\n -> Datos: {full_txt_path}\n -> Gráfica: {png_path}")
+    
+    plt.show()
