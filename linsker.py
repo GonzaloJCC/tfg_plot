@@ -84,8 +84,11 @@ run_simulation(full_txt_path)
 if os.path.exists(full_txt_path):
     print("Generating plot...")
     
-    # [CORRECCIÓN 1] Definimos la lista de columnas que faltaba
+    # For 2 synapses
     columns = ['Time', 'V1pre', 'V2pre', 'Vpost', 'i1', 'i2', 'w1', 'w2', 'SUM(W)']
+    
+    # For 4 synapses
+    # columns = ['Time', 'V1pre', 'V2pre', 'V3pre', 'V4pre', 'Vpost', 'i1', 'i2', 'i3', 'i4', 'w1', 'w2', 'w3', 'w4', 'SUM(W)']
 
     # [CORRECCIÓN 2] Usamos r'\s+' para evitar el warning y pasamos names=columns
     df = pd.read_csv(full_txt_path, sep=r'\s+', names=columns, header=0, engine='c')
@@ -101,6 +104,10 @@ if os.path.exists(full_txt_path):
     # Plots - Panel 1
     ax_i.plot(df_plot['Time'], df_plot['i1'], label='i1', color='red')
     ax_i.plot(df_plot['Time'], df_plot['i2'], label='i2', color='purple')
+
+    # ax_i.plot(df_plot['Time'], df_plot['i3'], label='i3', color='green')
+    # ax_i.plot(df_plot['Time'], df_plot['i4'], label='i4', color='blue')
+
     ax_i.set_ylabel('Corriente (i)')
     ax_i.legend(loc='upper right')
     ax_i.grid(True, alpha=0.3)
@@ -108,6 +115,10 @@ if os.path.exists(full_txt_path):
     # Plots - Panel 2
     ax_w.plot(df_plot['Time'], df_plot['w1'], label='w1', color='brown')
     ax_w.plot(df_plot['Time'], df_plot['w2'], label='w2', color='darkgreen')
+
+    # ax_w.plot(df_plot['Time'], df_plot['w3'], label='w3', color='green')
+    # ax_w.plot(df_plot['Time'], df_plot['w4'], label='w4', color='blue')
+    
     ax_w.set_ylabel('Pesos (w)')
     ax_w.set_xlabel('Tiempo (ms)')
     ax_w.legend(loc='upper right')
