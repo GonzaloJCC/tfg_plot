@@ -9,11 +9,10 @@ import re
 TXT_FOLDER = "Resultados_TXT"
 PNG_FOLDER = "Resultados_PNG"
 
-# --- 1. EXTRACT PARAMETERS FROM C++ ---
+# Extract parameters from C++
 def extract_cpp_params():
     print("--- Analyzing C++ code to find parameters ---")
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Adjust path if needed. Assuming: Gráficas/linsker.py -> Neun/examples/linskerSynapsis.cpp
     cpp_file = os.path.abspath(os.path.join(script_dir, '../Neun/examples/linskerSynapsis.cpp'))
     
     if not os.path.exists(cpp_file):
@@ -34,7 +33,7 @@ def extract_cpp_params():
 
     return params_found
 
-# --- 2. BUILD DYNAMIC NAME ---
+# Build dynamic name
 params = extract_cpp_params()
 
 # Choose which parameters form the name
@@ -52,10 +51,9 @@ for k in keys_to_use:
 suffix = "_".join(filename_parts) if filename_parts else "default"
 base_filename = f"linsker_{suffix}" 
 
-print(f"ID of Simulation: {base_filename}")
 
-# --- 3. RUN SIMULATION ---
-def run_simulation(output_txt_path):
+# Run code
+def run_model(output_txt_path):
     print("--- Compiling and Running ---")
     script_dir = os.path.dirname(os.path.abspath(__file__))
     build_dir = os.path.abspath(os.path.join(script_dir, '../Neun/build'))
@@ -77,10 +75,10 @@ os.makedirs(txt_dir_abs, exist_ok=True)
 
 full_txt_path = os.path.join(txt_dir_abs, f"{base_filename}.txt")
 
-# Run simulation
-run_simulation(full_txt_path)
+# Run model
+run_model(full_txt_path)
 
-# --- 4. PLOT ---
+# Plot
 if os.path.exists(full_txt_path):
     print("Generating plot...")
     
@@ -90,7 +88,6 @@ if os.path.exists(full_txt_path):
     # For 4 synapses
     # columns = ['Time', 'V1pre', 'V2pre', 'V3pre', 'V4pre', 'Vpost', 'i1', 'i2', 'i3', 'i4', 'w1', 'w2', 'w3', 'w4', 'SUM(W)']
 
-    # [CORRECCIÓN 2] Usamos r'\s+' para evitar el warning y pasamos names=columns
     df = pd.read_csv(full_txt_path, sep=r'\s+', names=columns, header=0, engine='c')
     
     df_plot = df.iloc[::50, :].copy()
