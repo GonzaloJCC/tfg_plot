@@ -13,7 +13,7 @@ PNG_FOLDER = "Resultados_PNG"
 def extract_cpp_params():
     print("--- Analyzing C++ code to find parameters ---")
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    cpp_file = os.path.abspath(os.path.join(script_dir, '../Neun/examples/linskerSynapsis.cpp'))
+    cpp_file = os.path.abspath(os.path.join(script_dir, '../Neun/examples/linskerSynapse.cpp'))
     
     if not os.path.exists(cpp_file):
         print(f"Error: Not found {cpp_file}")
@@ -59,7 +59,7 @@ def run_model(output_txt_path):
     build_dir = os.path.abspath(os.path.join(script_dir, '../Neun/build'))
     
     # Execute c++ from here using output redirection
-    cmd = f'make && cd examples && ./linskerSynapsis > "{output_txt_path}"'
+    cmd = f'make && cd examples && ./linskerSynapse > "{output_txt_path}"'
     
     try:
         subprocess.run(cmd, cwd=build_dir, shell=True, check=True)
