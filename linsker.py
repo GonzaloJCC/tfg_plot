@@ -90,7 +90,7 @@ if os.path.exists(full_txt_path):
 
     df = pd.read_csv(full_txt_path, sep=r'\s+', names=columns, header=0, engine='c')
     
-    df_plot = df.iloc[::50, :].copy()
+    df_plot = df.iloc[::5, :].copy()
 
     fig, (ax_i, ax_w) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
 
