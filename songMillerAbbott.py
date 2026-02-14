@@ -82,11 +82,12 @@ run_model(full_txt_path)
 if os.path.exists(full_txt_path):
     print("Generating plot")
 
-    columns = ['Time', 'vpre1', 'vpre2', 'vpost', 'i1', 'i2', 'g1', 'g2', 'SUM(g)']
+    columns = ['Time', 'vpre1', 'vpre2', 'vpost', 'i1', 'i2', 'g1', 'g2']
     df = pd.read_csv(full_txt_path, sep=r'\s+', names=columns, header=0, engine='c')
 
     # Downsample for continuous plots
-    df_plot = df.iloc[::50, :].copy()
+    # df_plot = df.iloc[::50, :].copy()
+    df_plot = df.iloc[::1, :].copy()
 
     # fig, (ax_v, ax_i, ax_w) = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
     fig, (ax_i, ax_w) = plt.subplots(2, 1, figsize=(15, 10), sharex=True)
@@ -123,15 +124,15 @@ if os.path.exists(full_txt_path):
     # Plot 1: i
     ax_i.plot(df_plot['Time'], df_plot['i1'], label='i1', color='red')
     ax_i.plot(df_plot['Time'], df_plot['i2'], label='i2', color='blue')
-    ax_i.set_ylabel('Current (i)')
+    ax_i.set_ylabel('Corriente (i)')
     ax_i.legend(loc='upper right')
     ax_i.grid(True, alpha=0.3)
 
     # Plot 2: g
     ax_w.plot(df_plot['Time'], df_plot['g1'], label='g1', color='red')
     ax_w.plot(df_plot['Time'], df_plot['g2'], label='g2', color='blue')
-    ax_w.set_ylabel('Conductance (g)')
-    ax_w.set_xlabel('Time (ms)')
+    ax_w.set_ylabel('Conductancia (g)')
+    ax_w.set_xlabel('Tiempo (ms)')
     ax_w.legend(loc='upper right')
     ax_w.grid(True, alpha=0.3)
 

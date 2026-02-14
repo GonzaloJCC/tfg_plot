@@ -92,7 +92,7 @@ if os.path.exists(full_txt_path):
     
     df_plot = df.iloc[::1, :].copy()  # Change the number to take less data but simulate faster
 
-    fig, (ax_i, ax_w) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
+    fig, (ax_i, ax_w) = plt.subplots(2, 1, figsize=(20, 10), sharex=True)
 
     # Title of the plot
     plot_title_str = ", ".join(title_parts)
@@ -132,4 +132,4 @@ if os.path.exists(full_txt_path):
     plt.savefig(png_path)
     print(f"\n -> Data: {full_txt_path}\n -> Plot: {png_path}")
     
-    # plt.show()
+    plt.show()
