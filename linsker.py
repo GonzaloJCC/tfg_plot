@@ -132,4 +132,4 @@ if os.path.exists(full_txt_path):
     plt.savefig(png_path)
     print(f"\n -> Data: {full_txt_path}\n -> Plot: {png_path}")
     
-    plt.show()
+    # plt.show()

@@ -5,7 +5,7 @@ import os
 import sys
 import re
 
-#Folders
+# Folders
 TXT_FOLDER = "Resultados_TXT"
 PNG_FOLDER = "Resultados_PNG"
 
@@ -82,27 +82,56 @@ run_model(full_txt_path)
 if os.path.exists(full_txt_path):
     print("Generating plot")
 
-    columns = ['Time', 'vpre', 'vpost', 'i', 'g']
+    columns = ['Time', 'vpre1', 'vpre2', 'vpost', 'i1', 'i2', 'g1', 'g2', 'SUM(g)']
     df = pd.read_csv(full_txt_path, sep=r'\s+', names=columns, header=0, engine='c')
 
+    # Downsample for continuous plots
     df_plot = df.iloc[::50, :].copy()
 
-    fig, (ax_i, ax_w) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
+    # fig, (ax_v, ax_i, ax_w) = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
+    fig, (ax_i, ax_w) = plt.subplots(2, 1, figsize=(15, 10), sharex=True)
 
     # Title of the plot
     plot_title_str = ", ".join(title_parts)
     fig.suptitle(f"Song Miller Abbott Simulation\n[{plot_title_str}]", fontsize=11, color='navy')
 
-    # Plots - Panel 1
-    ax_i.plot(df_plot['Time'], df_plot['i'], label='i', color='red')
-    ax_i.set_ylabel('Corriente (i)')
+    # # Plot 0: v
+    # threshold_val = float(params.get('spike_threshold', -54.0))
+
+
+    # raster_config = [
+    #     ('vpre1', 'red', 1, 'Vpre1'),
+    #     ('vpre2', 'blue', 2, 'Vpre2'),
+    #     ('vpost', 'green', 3, 'Vpost')
+    # ]
+
+    # for col, color, y_pos, label in raster_config:
+    #     # Detect spikes using full dataframe
+    #     spikes = df[(df[col] > threshold_val) & (df[col].shift(1) <= threshold_val)]
+        
+    #     if not spikes.empty:
+    #         # Plot fixed Y value for every spike time
+    #         y_values = [y_pos] * len(spikes)
+    #         ax_v.scatter(spikes['Time'], y_values, color=color, marker='|', s=500, linewidth=2)
+
+    # # Configure Y-axis for categorical data
+    # ax_v.set_yticks([1, 2, 3])
+    # ax_v.set_yticklabels(['Vpre1', 'Vpre2', 'Vpost'])
+    # ax_v.set_ylim(0.5, 3.5)
+    # ax_v.grid(True, alpha=0.3)
+
+    # Plot 1: i
+    ax_i.plot(df_plot['Time'], df_plot['i1'], label='i1', color='red')
+    ax_i.plot(df_plot['Time'], df_plot['i2'], label='i2', color='blue')
+    ax_i.set_ylabel('Current (i)')
     ax_i.legend(loc='upper right')
     ax_i.grid(True, alpha=0.3)
 
-    # Plots - Panel 2
-    ax_w.plot(df_plot['Time'], df_plot['g'], label='g', color='brown')
-    ax_w.set_ylabel('Conductancia (g)')
-    ax_w.set_xlabel('Tiempo (ms)')
+    # Plot 2: g
+    ax_w.plot(df_plot['Time'], df_plot['g1'], label='g1', color='red')
+    ax_w.plot(df_plot['Time'], df_plot['g2'], label='g2', color='blue')
+    ax_w.set_ylabel('Conductance (g)')
+    ax_w.set_xlabel('Time (ms)')
     ax_w.legend(loc='upper right')
     ax_w.grid(True, alpha=0.3)
 
