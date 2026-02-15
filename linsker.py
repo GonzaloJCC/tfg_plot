@@ -5,9 +5,21 @@ import os
 import sys
 import re
 
+# Set LaTeX parameters
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif",
+    "font.serif": ["Computer Modern Roman"],
+    "font.size": 11,
+    "axes.labelsize": 11,
+    "legend.fontsize": 9,
+    "xtick.labelsize": 9,
+    "ytick.labelsize": 9
+})
+
 # Folders
 TXT_FOLDER = "Resultados_TXT"
-PNG_FOLDER = "Resultados_PNG"
+PNG_FOLDER = "Resultados_PDF"
 
 # Extract parameters from C++
 def extract_cpp_params():
@@ -92,11 +104,10 @@ if os.path.exists(full_txt_path):
     
     df_plot = df.iloc[::1, :].copy()  # Change the number to take less data but simulate faster
 
-    fig, (ax_i, ax_w) = plt.subplots(2, 1, figsize=(20, 10), sharex=True)
+    fig, (ax_i, ax_w) = plt.subplots(2, 1, figsize=(6, 5), sharex=True)
 
     # Title of the plot
     plot_title_str = ", ".join(title_parts)
-    fig.suptitle(f"Linsker Simulation\n[{plot_title_str}]", fontsize=11, color='navy')
 
     # Plots - Panel 1
     ax_i.plot(df_plot['Time'], df_plot['i1'], label='i1', color='red')
@@ -105,7 +116,7 @@ if os.path.exists(full_txt_path):
     # ax_i.plot(df_plot['Time'], df_plot['i3'], label='i3', color='green')
     # ax_i.plot(df_plot['Time'], df_plot['i4'], label='i4', color='blue')
 
-    ax_i.set_ylabel('Corriente (i)')
+    ax_i.set_ylabel(r'Corriente ($pA$)')
     ax_i.legend(loc='upper right')
     ax_i.grid(True, alpha=0.3)
 
@@ -116,8 +127,8 @@ if os.path.exists(full_txt_path):
     # ax_w.plot(df_plot['Time'], df_plot['w3'], label='w3', color='green')
     # ax_w.plot(df_plot['Time'], df_plot['w4'], label='w4', color='blue')
     
-    ax_w.set_ylabel('Pesos (w)')
-    ax_w.set_xlabel('Tiempo (ms)')
+    ax_w.set_ylabel(r'Pesos ($w$)')
+    ax_w.set_xlabel(r'Tiempo ($ms$)')
     ax_w.legend(loc='upper right')
     ax_w.grid(True, alpha=0.3)
 
@@ -127,9 +138,9 @@ if os.path.exists(full_txt_path):
     png_dir_abs = os.path.join(script_dir, PNG_FOLDER)
     os.makedirs(png_dir_abs, exist_ok=True)
     
-    png_path = os.path.join(png_dir_abs, f"{base_filename}.png")
+    png_path = os.path.join(png_dir_abs, f"{base_filename}.pdf")
     
     plt.savefig(png_path)
     print(f"\n -> Data: {full_txt_path}\n -> Plot: {png_path}")
     
-    plt.show()
+    # plt.show()
