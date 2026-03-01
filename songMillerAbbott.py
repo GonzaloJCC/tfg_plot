@@ -26,7 +26,7 @@ def extract_cpp_params():
     print("Getting C++ parameters from code")
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # Adjust path to Neun folder
-    cpp_file = os.path.abspath(os.path.join(script_dir, "../Neun/examples/songMillerAbbottSynapse.cpp"))
+    cpp_file = os.path.abspath(os.path.join(script_dir, "../Neun/examples/STDPSynapse.cpp"))
 
     if not os.path.exists(cpp_file):
         print(f"Error: Not found {cpp_file}")
