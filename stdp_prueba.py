@@ -62,7 +62,7 @@ for k in keys_to_use:
 
 # If no params found, use "default"
 suffix = "_".join(filename_parts) if filename_parts else "default"
-base_filename = f"songMillerAbbott_{suffix}" 
+base_filename = f"Prueba" 
 
 # Run code
 def run_model(output_txt_path):
@@ -90,7 +90,6 @@ def run_model(output_txt_path):
         print(f"Error compiling/running: {e}")
         sys.exit(1)
 
-
 # Path for txt file
 script_dir = os.path.dirname(os.path.abspath(__file__))
 txt_dir_abs = os.path.join(script_dir, TXT_FOLDER)
@@ -108,55 +107,54 @@ if os.path.exists(full_txt_path):
     columns = ['Time', 'vpre1', 'vpre2', 'vpost', 'i1', 'i2', 'g1', 'g2']
     df = pd.read_csv(full_txt_path, sep=r'\s+', names=columns, header=0, engine='c')
 
-    # Downsample for continuous plots
-    # df_plot = df.iloc[::50, :].copy()
-    df_plot = df.iloc[::1, :].copy()
+    df_plot = df.copy()
 
-    fig, (ax_i, ax_w) = plt.subplots(2, 1, figsize=(6, 5), sharex=True)
+    # Creamos 4 subplots: 
+    # 1. vpre1 y vpost 
+    # 2. g1
+    # 3. vpre2 y vpost
+    # 4. g2
+    fig, axs = plt.subplots(4, 1, figsize=(8, 10), sharex=True)
 
-    # Title of the plot
-    plot_title_str = ", ".join(title_parts)
+    plot_title_str = "Verificación funcionamiento"
+    fig.suptitle(f"Verificación STDP: {plot_title_str}")
 
-    # # Plot 0: v
-    # threshold_val = float(params.get('spike_threshold', -54.0))
+    threshold_val = float(params.get('spike_threshold', -54.0))
 
+    # --- SUBPLOT 1: Voltajes Sinapsis 1 ---
+    axs[0].plot(df_plot['Time'], df_plot['vpre1'], label='V_pre1', color='red', alpha=0.7)
+    axs[0].plot(df_plot['Time'], df_plot['vpost'], label='V_post', color='green', alpha=0.7)
+    axs[0].axhline(threshold_val, color='gray', linestyle='--', alpha=0.5, label='Umbral')
+    axs[0].set_ylabel(r'Voltaje ($mV$)')
+    axs[0].set_title("Interacción Sinapsis 1 (Pre1 y Post)", fontsize=10, loc='left')
+    axs[0].legend(loc='upper right')
+    axs[0].grid(True, alpha=0.3)
 
-    # raster_config = [
-    #     ('vpre1', 'red', 1, 'Vpre1'),
-    #     ('vpre2', 'blue', 2, 'Vpre2'),
-    #     ('vpost', 'green', 3, 'Vpost')
-    # ]
+    # --- SUBPLOT 2: Conductancia Sinapsis 1 ---
+    axs[1].plot(df_plot['Time'], df_plot['g1'], label='g1', color='red')
+    axs[1].set_ylabel(r'Cond. ($pS$)')
+    axs[1].legend(loc='upper right')
+    axs[1].grid(True, alpha=0.3)
 
-    # for col, color, y_pos, label in raster_config:
-    #     # Detect spikes using full dataframe
-    #     spikes = df[(df[col] > threshold_val) & (df[col].shift(1) <= threshold_val)]
-        
-    #     if not spikes.empty:
-    #         # Plot fixed Y value for every spike time
-    #         y_values = [y_pos] * len(spikes)
-    #         ax_v.scatter(spikes['Time'], y_values, color=color, marker='|', s=500, linewidth=2)
+    # --- SUBPLOT 3: Voltajes Sinapsis 2 ---
+    axs[2].plot(df_plot['Time'], df_plot['vpre2'], label='V_pre2', color='blue', alpha=0.7)
+    axs[2].plot(df_plot['Time'], df_plot['vpost'], label='V_post', color='green', alpha=0.7)
+    axs[2].axhline(threshold_val, color='gray', linestyle='--', alpha=0.5, label='Umbral')
+    axs[2].set_ylabel(r'Voltaje ($mV$)')
+    axs[2].set_title("Interacción Sinapsis 2 (Pre2 y Post)", fontsize=10, loc='left')
+    axs[2].legend(loc='upper right')
+    axs[2].grid(True, alpha=0.3)
 
-    # # Configure Y-axis for categorical data
-    # ax_v.set_yticks([1, 2, 3])
-    # ax_v.set_yticklabels(['Vpre1', 'Vpre2', 'Vpost'])
-    # ax_v.set_ylim(0.5, 3.5)
-    # ax_v.grid(True, alpha=0.3)
+    # --- SUBPLOT 4: Conductancia Sinapsis 2 ---
+    axs[3].plot(df_plot['Time'], df_plot['g2'], label='g2', color='blue')
+    axs[3].set_ylabel(r'Cond. ($pS$)')
+    axs[3].set_xlabel(r'Tiempo (ms)')
+    axs[3].legend(loc='upper right')
+    axs[3].grid(True, alpha=0.3)
 
-    # Plot 1: i
-    ax_i.plot(df_plot['Time'], df_plot['i1'], label='i1', color='red')
-    ax_i.plot(df_plot['Time'], df_plot['i2'], label='i2', color='blue')
-    ax_i.set_ylabel(r'Corriente ($pA$)')
-    ax_i.legend(loc='upper right')
-    ax_i.grid(True, alpha=0.3)
-
-    # Plot 2: g
-    ax_w.plot(df_plot['Time'], df_plot['g1'], label='g1', color='red')
-    ax_w.plot(df_plot['Time'], df_plot['g2'], label='g2', color='blue')
-    ax_w.set_ylabel(r'Conductancia ($pS$)')
-    ax_w.set_xlabel(r'Tiempo (ms)')
-    ax_w.legend(loc='upper right')
-    ax_w.grid(True, alpha=0.3)
-
+    # Zoom de 20 a 70 ms para ver los picos individuales
+    axs[0].set_xlim(50, 150)
+    
     plt.tight_layout()
 
     # Save plot
@@ -167,5 +165,3 @@ if os.path.exists(full_txt_path):
     
     plt.savefig(png_path)
     print(f"\n -> Data: {full_txt_path}\n -> Plot: {png_path}")
-    
-    # plt.show()
