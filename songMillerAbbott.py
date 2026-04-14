@@ -26,7 +26,7 @@ def extract_cpp_params():
     print("Getting C++ parameters from code")
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # Adjust path to Neun folder
-    cpp_file = os.path.abspath(os.path.join(script_dir, "../Neun/examples/STDPSynapse.cpp"))
+    cpp_file = os.path.abspath(os.path.join(script_dir, "../../Neun/examples/STDPSynapse.cpp"))
 
     if not os.path.exists(cpp_file):
         print(f"Error: Not found {cpp_file}")
@@ -68,7 +68,7 @@ base_filename = f"songMillerAbbott_{suffix}"
 def run_model(output_txt_path):
     print("--- Compiling and Running ---")
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    build_dir = os.path.abspath(os.path.join(script_dir, '../Neun/build'))
+    build_dir = os.path.abspath(os.path.join(script_dir, '../../Neun/build'))
     
     # Eliminar el archivo TXT viejo para evitar errores
     if os.path.exists(output_txt_path):

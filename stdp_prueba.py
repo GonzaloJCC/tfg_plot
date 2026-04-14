@@ -1,5 +1,10 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+
+from bokeh.plotting import figure, output_file, save
+from bokeh.layouts import column
+from bokeh.models import HoverTool
+
 import subprocess
 import os
 import sys
@@ -20,13 +25,15 @@ plt.rcParams.update({
 # Folders
 TXT_FOLDER = "Resultados_TXT"
 PNG_FOLDER = "Resultados_PDF"
+BOKEH_FOLDER = "Resultados_HTML"
+FILE_NAME = "Prueba_01"
 
 # Get parameters from C++
 def extract_cpp_params():
     print("Getting C++ parameters from code")
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # Adjust path to Neun folder
-    cpp_file = os.path.abspath(os.path.join(script_dir, "../Neun/examples/STDPSynapse.cpp"))
+    cpp_file = os.path.abspath(os.path.join(script_dir, "../../Neun/examples/STDPSynapse.cpp"))
 
     if not os.path.exists(cpp_file):
         print(f"Error: Not found {cpp_file}")
@@ -62,13 +69,12 @@ for k in keys_to_use:
 
 # If no params found, use "default"
 suffix = "_".join(filename_parts) if filename_parts else "default"
-base_filename = f"Prueba" 
 
 # Run code
 def run_model(output_txt_path):
     print("--- Compiling and Running ---")
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    build_dir = os.path.abspath(os.path.join(script_dir, '../Neun/build'))
+    build_dir = os.path.abspath(os.path.join(script_dir, '../../Neun/build'))
     
     # Eliminar el archivo TXT viejo para evitar errores
     if os.path.exists(output_txt_path):
@@ -95,25 +101,21 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 txt_dir_abs = os.path.join(script_dir, TXT_FOLDER)
 os.makedirs(txt_dir_abs, exist_ok=True)
 
-full_txt_path = os.path.join(txt_dir_abs, f"{base_filename}.txt")
+full_txt_path = os.path.join(txt_dir_abs, f"{FILE_NAME}.txt")
 
 # Run model
 run_model(full_txt_path)
 
 # Plot
 if os.path.exists(full_txt_path):
-    print("Generating plot")
+    print("Generating plot (PDF)...")
 
     columns = ['Time', 'vpre1', 'vpre2', 'vpost', 'i1', 'i2', 'g1', 'g2']
     df = pd.read_csv(full_txt_path, sep=r'\s+', names=columns, header=0, engine='c')
 
     df_plot = df.copy()
 
-    # Creamos 4 subplots: 
-    # 1. vpre1 y vpost 
-    # 2. g1
-    # 3. vpre2 y vpost
-    # 4. g2
+    # Generate pdf ------------------------------------------------------------------------------------------------------------
     fig, axs = plt.subplots(4, 1, figsize=(8, 10), sharex=True)
 
     plot_title_str = "Verificación funcionamiento"
@@ -121,47 +123,91 @@ if os.path.exists(full_txt_path):
 
     threshold_val = float(params.get('spike_threshold', -54.0))
 
-    # --- SUBPLOT 1: Voltajes Sinapsis 1 ---
-    axs[0].plot(df_plot['Time'], df_plot['vpre1'], label='V_pre1', color='red', alpha=0.7)
-    axs[0].plot(df_plot['Time'], df_plot['vpost'], label='V_post', color='green', alpha=0.7)
+    # SUBPLOT 1: Voltajes Sinapsis 1
+    axs[0].plot(df_plot['Time'], df_plot['vpre1'], label='V_pre1', color='red')
+    axs[0].plot(df_plot['Time'], df_plot['vpost'], label='V_post', color='green')
     axs[0].axhline(threshold_val, color='gray', linestyle='--', alpha=0.5, label='Umbral')
     axs[0].set_ylabel(r'Voltaje ($mV$)')
     axs[0].set_title("Interacción Sinapsis 1 (Pre1 y Post)", fontsize=10, loc='left')
     axs[0].legend(loc='upper right')
     axs[0].grid(True, alpha=0.3)
 
-    # --- SUBPLOT 2: Conductancia Sinapsis 1 ---
+    # SUBPLOT 2: Conductance Sinapsis 1
     axs[1].plot(df_plot['Time'], df_plot['g1'], label='g1', color='red')
     axs[1].set_ylabel(r'Cond. ($pS$)')
     axs[1].legend(loc='upper right')
     axs[1].grid(True, alpha=0.3)
 
-    # --- SUBPLOT 3: Voltajes Sinapsis 2 ---
-    axs[2].plot(df_plot['Time'], df_plot['vpre2'], label='V_pre2', color='blue', alpha=0.7)
-    axs[2].plot(df_plot['Time'], df_plot['vpost'], label='V_post', color='green', alpha=0.7)
+    # SUBPLOT 3: Voltajes Sinapsis 2
+    axs[2].plot(df_plot['Time'], df_plot['vpre2'], label='V_pre2', color='blue')
+    axs[2].plot(df_plot['Time'], df_plot['vpost'], label='V_post', color='green')
     axs[2].axhline(threshold_val, color='gray', linestyle='--', alpha=0.5, label='Umbral')
     axs[2].set_ylabel(r'Voltaje ($mV$)')
     axs[2].set_title("Interacción Sinapsis 2 (Pre2 y Post)", fontsize=10, loc='left')
     axs[2].legend(loc='upper right')
     axs[2].grid(True, alpha=0.3)
 
-    # --- SUBPLOT 4: Conductancia Sinapsis 2 ---
+    # SUBPLOT 4: Conductance Sinapsis 2
     axs[3].plot(df_plot['Time'], df_plot['g2'], label='g2', color='blue')
     axs[3].set_ylabel(r'Cond. ($pS$)')
     axs[3].set_xlabel(r'Tiempo (ms)')
     axs[3].legend(loc='upper right')
     axs[3].grid(True, alpha=0.3)
 
-    # Zoom de 20 a 70 ms para ver los picos individuales
+    # Zoom from 50 to 150 ms to see individual spikes
     axs[0].set_xlim(50, 150)
     
     plt.tight_layout()
 
-    # Save plot
+    # Save PDF plot
     png_dir_abs = os.path.join(script_dir, PNG_FOLDER)
     os.makedirs(png_dir_abs, exist_ok=True)
-    
-    png_path = os.path.join(png_dir_abs, f"{base_filename}.pdf")
-    
+    png_path = os.path.join(png_dir_abs, f"{FILE_NAME}.pdf")
     plt.savefig(png_path)
-    print(f"\n -> Data: {full_txt_path}\n -> Plot: {png_path}")
+    
+    # Generate interactive html ------------------------------------------------------------------------------------------------------------
+    print("Generating plot (HTML)...")
+    
+    # Create folder for Bokeh
+    bokeh_dir_abs = os.path.join(script_dir, BOKEH_FOLDER)
+    os.makedirs(bokeh_dir_abs, exist_ok=True)
+    
+    bokeh_path = os.path.join(bokeh_dir_abs, f"{FILE_NAME}.html")
+    output_file(bokeh_path, title=f"STDP Interactiva: {FILE_NAME}")
+
+    TOOLS = "pan,wheel_zoom,box_zoom,reset,save,crosshair"
+
+    # P1: Voltages Synapsis 1 (We apply the initial x_range from 50 to 150 here)
+    p1 = figure(title="Interacción Sinapsis 1 (Pre1 y Post)", width=900, height=250, tools=TOOLS, x_range=(50, 150))
+    p1.line(df_plot['Time'], df_plot['vpre1'], legend_label="V_pre1", color="red", line_width=1.5)
+    p1.line(df_plot['Time'], df_plot['vpost'], legend_label="V_post", color="green", line_width=1.5)
+    p1.line(df_plot['Time'], threshold_val, legend_label="Umbral", color="gray", line_dash="dashed", alpha=0.5)
+    p1.yaxis.axis_label = "Voltaje (mV)"
+    p1.legend.click_policy = "hide"
+
+    # P2: Conductance Synapsis 1 (Synchronized with P1)
+    p2 = figure(width=900, height=200, tools=TOOLS, x_range=p1.x_range)
+    p2.line(df_plot['Time'], df_plot['g1'], legend_label="g1", color="red", line_width=2)
+    p2.yaxis.axis_label = "Cond. (pS)"
+
+    # P3: Voltages Synapsis 2 (Synchronized with P1)
+    p3 = figure(title="Interacción Sinapsis 2 (Pre2 y Post)", width=900, height=250, tools=TOOLS, x_range=p1.x_range)
+    p3.line(df_plot['Time'], df_plot['vpre2'], legend_label="V_pre2", color="blue", line_width=1.5)
+    p3.line(df_plot['Time'], df_plot['vpost'], legend_label="V_post", color="green", line_width=1.5)
+    p3.line(df_plot['Time'], threshold_val, legend_label="Umbral", color="gray", line_dash="dashed", alpha=0.5)
+    p3.yaxis.axis_label = "Voltaje (mV)"
+    p3.legend.click_policy = "hide"
+
+    # P4: Conductance Synapsis 2 (Synchronized with P1)
+    p4 = figure(width=900, height=200, tools=TOOLS, x_range=p1.x_range)
+    p4.line(df_plot['Time'], df_plot['g2'], legend_label="g2", color="blue", line_width=2)
+    p4.xaxis.axis_label = "Tiempo (ms)"
+    p4.yaxis.axis_label = "Cond. (pS)"
+
+    # Group the plots in a vertical column
+    layout = column(p1, p2, p3, p4)
+    save(layout)
+
+    print(f"\n -> Data: {full_txt_path}")
+    print(f" -> PDF: {png_path}")
+    print(f" -> HTML: {bokeh_path}")
